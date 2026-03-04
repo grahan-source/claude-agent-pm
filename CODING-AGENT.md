@@ -28,38 +28,15 @@ You receive a **batch spec** from `specs/` (e.g., `specs/batch-5-auth-flow.md`).
 8. **Write a QA handoff** (see below)
 9. **Report completion** — what was done, what passed, any issues
 
-### QA Handoff
-
-After the deploy pipeline passes, write a QA handoff at `specs/qa/batch-N-qa-handoff.md`:
-
-```markdown
-# QA Handoff — Batch N: [Title]
-
-## What Changed
-[1-2 sentence summary of what was deployed]
-
-## Pages to Visually Inspect
-[List every URL affected. Be specific.]
-- https://your-staging-site.com/page1/ — [what to look for]
-
-## What to Look For
-[Specific visual checks]
-
-## Known Risks
-[Areas where you're least confident]
-
-## Verification Commands Already Run
-[Paste the output from the spec]
-```
-
 ### Completion Report
 
+Post this as a comment on the GitHub Issue when done. The QA Handoff and Session Handoff are part of this report — one comment, not separate documents.
+
 ```
-## Batch N Complete
+## Batch Complete
 
 **Commit:** <repo>@<hash>
 **Pipeline:** PASS / FAIL
-**QA handoff:** specs/qa/batch-N-qa-handoff.md
 
 ### Tasks
 - Task 1: [title] — DONE. [brief note]
@@ -72,6 +49,16 @@ After the deploy pipeline passes, write a QA handoff at `specs/qa/batch-N-qa-han
 ### Issues Found
 [Any problems discovered during implementation]
 [Or: "None"]
+
+### QA Handoff
+**Pages to inspect:** [URLs affected — be specific]
+**What to look for:** [specific visual/functional checks]
+**Known risks:** [areas where you're least confident]
+
+### Session Handoff
+**Status:** COMPLETE | PARTIAL | BLOCKED | FAILED
+**Next Steps:** [what the PM/QA agent should do next]
+**Context:** [anything the next session needs to know]
 ```
 
 ---
@@ -181,3 +168,7 @@ Wait for the pipeline to pass. If it fails, investigate and fix.
 - **Do not skip verification.** Run every verification command.
 - **Do not push if verification fails.** Fix the issue or report back.
 - **Do not edit files outside your declared file set.** If you discover you need to, stop and notify the PM agent.
+
+---
+
+You must produce the Completion Report with embedded Session Handoff before ending your session.

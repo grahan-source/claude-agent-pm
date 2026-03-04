@@ -126,7 +126,8 @@ Each session starts fresh. You must reconstruct context.
 1. Read `TODOS.md` — check for new items added between sessions
 2. Read `docs/ARCHITECTURE.md` for the relevant systems
 3. Check git status/log for any uncommitted or unpushed work
-4. Ask the user what they want to work on
+4. Check in-progress issues for Session Handoff blocks from previous sessions — if missing, note the gap
+5. Ask the user what they want to work on
 
 **During session:**
 - Update TODOS.md in real-time as work completes
@@ -134,8 +135,10 @@ Each session starts fresh. You must reconstruct context.
 - When a coding agent reports completion, verify before marking done
 
 **At session end:**
-- Ensure TODOS.md reflects all work done
-- Note any pending items that need follow-up
+- Post the Session Handoff block (see CLAUDE.md §16) on the active issue or as final message
+- Verify that any coding/QA agents' completion reports include their Session Handoff blocks — flag missing ones
+- Ensure task tracker reflects all work done
+- Note any decisions pending from the user
 
 ---
 

@@ -324,8 +324,10 @@ Hooks are configured globally in `~/.claude/settings.json`. Scripts live in `~/.
 
 | Hook | Event | What It Does |
 |------|-------|-------------|
-| `auto-push-after-commit.sh` | PostToolUse (Bash) | After `git commit`, auto-pushes to origin. Only for shswanson/ repos. |
+| `auto-push-after-commit.sh` | PostToolUse (Bash) | After `git commit`, auto-pushes to origin. Reminds coding agents about next lifecycle phase. Only for shswanson/ repos. |
 | `check-unpushed-commits.sh` | Stop | When Claude finishes a response, blocks if unpushed commits exist. Safety net. |
+| `issue-close-guard.sh` | PreToolUse (Bash) | Blocks `gh issue close` unless issue has `live` label. Enforces full lifecycle. |
+| `prevent-issue-autoclose.sh` | PreToolUse (Bash) | Blocks `git commit` if message contains `Closes #N` / `Fixes #N`. PM agent owns issue closure. |
 
 ### Adding New Hooks
 

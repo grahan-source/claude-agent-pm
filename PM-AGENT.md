@@ -48,6 +48,52 @@ When the user reports a problem or requests a feature:
 4. **Present options with recommendation.** Explain why. Include: what changes, what stays the same, what's reversible.
 5. **Get alignment.** Wait for the user's decision before writing the spec.
 
+#### Fault Localization Protocol
+
+When investigating a bug, use this structured protocol instead of ad-hoc code reading. The phased approach prevents fixating on the symptom location and missing the actual root cause — especially for indirection bugs and multi-file issues. (Based on [research on semi-formal code reasoning](https://arxiv.org/abs/2603.01896).)
+
+**Phase 1 — Symptom Characterization:**
+- What's broken? (exact behavior observed)
+- What's expected? (exact behavior per spec or previous working state)
+- Where does it manifest? (URL, page, endpoint, specific inputs)
+- When did it start? (commit range, deploy, data change)
+
+**Phase 2 — Test Semantics:**
+- What inputs trigger the bug? (specific URLs, user roles, data states)
+- What inputs DON'T trigger it? (compare: why does input A break but input B works?)
+- What's different between triggering and non-triggering cases?
+
+**Phase 3 — Code Path Trace:**
+Starting from the symptom, trace backward through the call chain. For each function in the path:
+- What file and line?
+- What does it receive as input?
+- What does it return/render?
+- Does the behavior match expectations?
+- Document each step — don't skip "obvious" functions.
+
+```
+Symptom: Dashboard shows 0 for active users
+→ templates/dashboard.html:45 renders {{ active_count }}
+→ views/dashboard.py:22 calls get_active_users()
+→ models/user.py:78 queries User.objects.filter(is_active=True)
+→ Query returns 0 — but DB has 150 active users
+→ models/user.py:75 applies tenant filter — tenant_id=None  ← DIVERGENCE POINT
+→ Root cause: middleware doesn't set tenant context for cron-triggered dashboard refresh
+```
+
+**Phase 4 — Divergence Analysis:**
+- At the divergence point: what changed? (code diff, data change, external dependency)
+- Is this a regression (worked before) or a latent bug (never worked for this input)?
+- Are there other code paths affected by the same root cause?
+
+**Phase 5 — Formal Prediction:**
+State the root cause explicitly:
+- "The bug is at [file:line] because [traced evidence from Phase 3]"
+- "Other affected paths: [list any additional code that shares the root cause]"
+- "Fix approach: [what needs to change and why]"
+
+**When to skip:** If the bug is obviously a typo, missing file, or syntax error visible in the error log, just fix it. The protocol is for bugs where the cause isn't immediately obvious from the symptom.
+
 ### 3. Write Specs for Coding Agents
 
 When code work is approved, write a detailed spec in `specs/` that a coding agent can follow autonomously.
@@ -80,7 +126,8 @@ Each session starts fresh. You must reconstruct context.
 1. Read `TODOS.md` — check for new items added between sessions
 2. Read `docs/ARCHITECTURE.md` for the relevant systems
 3. Check git status/log for any uncommitted or unpushed work
-4. Ask the user what they want to work on
+4. Check in-progress issues for Session Handoff blocks from previous sessions — if missing, note the gap
+5. Ask the user what they want to work on
 
 **During session:**
 - Update TODOS.md in real-time as work completes
@@ -88,8 +135,10 @@ Each session starts fresh. You must reconstruct context.
 - When a coding agent reports completion, verify before marking done
 
 **At session end:**
-- Ensure TODOS.md reflects all work done
-- Note any pending items that need follow-up
+- Post the Session Handoff block (see CLAUDE.md §16) on the active issue or as final message
+- Verify that any coding/QA agents' completion reports include their Session Handoff blocks — flag missing ones
+- Ensure task tracker reflects all work done
+- Note any decisions pending from the user
 
 ---
 

@@ -22,43 +22,21 @@ You receive a **batch spec** from `specs/` (e.g., `specs/batch-5-auth-flow.md`).
 2. **Read every file** you'll modify before editing — understand current state
 3. **Execute tasks in order** unless the spec says they're independent
 4. **Run verification commands** after each task
-5. **Commit and push** using the spec's commit message
-6. **Watch the deploy pipeline** — verify it passes
-7. **Write a QA handoff** (see below)
-8. **Report completion** — what was done, what passed, any issues
-
-### QA Handoff
-
-After the deploy pipeline passes, write a QA handoff at `specs/qa/batch-N-qa-handoff.md`:
-
-```markdown
-# QA Handoff — Batch N: [Title]
-
-## What Changed
-[1-2 sentence summary of what was deployed]
-
-## Pages to Visually Inspect
-[List every URL affected. Be specific.]
-- https://your-staging-site.com/page1/ — [what to look for]
-
-## What to Look For
-[Specific visual checks]
-
-## Known Risks
-[Areas where you're least confident]
-
-## Verification Commands Already Run
-[Paste the output from the spec]
-```
+5. **Self-verify with a reasoning certificate** (see below) — trace through your changes before pushing
+6. **Commit and push** using the spec's commit message
+7. **Watch the deploy pipeline** — verify it passes
+8. **Write a QA handoff** (see below)
+9. **Report completion** — what was done, what passed, any issues
 
 ### Completion Report
 
+Post this as a comment on the GitHub Issue when done. The QA Handoff and Session Handoff are part of this report — one comment, not separate documents.
+
 ```
-## Batch N Complete
+## Batch Complete
 
 **Commit:** <repo>@<hash>
 **Pipeline:** PASS / FAIL
-**QA handoff:** specs/qa/batch-N-qa-handoff.md
 
 ### Tasks
 - Task 1: [title] — DONE. [brief note]
@@ -71,7 +49,76 @@ After the deploy pipeline passes, write a QA handoff at `specs/qa/batch-N-qa-han
 ### Issues Found
 [Any problems discovered during implementation]
 [Or: "None"]
+
+### QA Handoff
+**Pages to inspect:** [URLs affected — be specific]
+**What to look for:** [specific visual/functional checks]
+**Known risks:** [areas where you're least confident]
+
+### Session Handoff
+**Status:** COMPLETE | PARTIAL | BLOCKED | FAILED
+**Next Steps:** [what the PM/QA agent should do next]
+**Context:** [anything the next session needs to know]
 ```
+
+---
+
+## Self-Verification Certificate
+
+Before committing, fill out this reasoning certificate for each task in the spec. This prevents "looks right" pushes that break under edge cases. The structured format forces you to trace execution paths rather than pattern-match against expected output.
+
+**Why this exists:** Unstructured "does it look right?" review misses ~10-15% of semantic bugs that structured reasoning catches — especially subtle issues like shadowed functions, null propagation, and off-by-one path selection. (Based on [research on semi-formal code reasoning](https://arxiv.org/abs/2603.01896).)
+
+**For each task, work through these sections:**
+
+### 1. PREMISES
+State what the spec requires this code to do. Be precise — quote the spec's success criteria.
+
+### 2. EXECUTION TRACE
+Walk through the changed code with **concrete inputs** — not abstract descriptions. Pick at least:
+- One **happy path** input (the common case)
+- One **edge case** input (null, empty, missing key, boundary value)
+- One **error path** input (if applicable — what triggers the fallback/error handling?)
+
+For each input, trace the actual execution: which branch is taken, what value each variable holds, what gets returned or rendered. Use the actual variable names and function names from the code.
+
+Example:
+```
+Input: user_id = 42, role = 'editor'
+→ get_user(42) returns User object with role='editor'
+→ if (user.role === 'admin') → false, skip block
+→ if (user.role === 'editor') → true, enter block
+→ Returns filtered dashboard with edit permissions ✓
+```
+
+### 3. EDGE CASES
+List edge cases that the actual code paths exercise. For each:
+- What input triggers it?
+- What does the code do?
+- Is the behavior correct per the spec?
+
+Don't invent hypothetical scenarios — focus on cases that real data can produce. Check: What values does the database actually contain? What can the API actually return? What does the user actually input?
+
+### 4. FORMAL CONCLUSION
+One of:
+- **SATISFIES SPEC** — "This change satisfies [spec requirement] because [traced evidence from §2-3]"
+- **DEVIATES** — "This change deviates from the spec: [what's different] because [traced evidence]. Flagging for PM review."
+
+**If you cannot complete the trace** (e.g., you don't know what a function returns, or you're unsure about a type), that's a signal to read more code before pushing. Do not guess.
+
+### When to skip
+
+Skip the certificate for purely mechanical changes where there's no logic to trace:
+- CSS-only changes (spacing, colors, font sizes)
+- Copy/text changes
+- Adding static HTML with no conditionals
+- Updating version numbers
+
+For everything else — any logic, conditional rendering, API calls, database queries — do the certificate.
+
+### Include in completion report
+
+Post the certificate (or a summary) in your completion report. This gives the QA agent traced evidence to verify against, rather than starting from scratch.
 
 ---
 
@@ -91,6 +138,7 @@ Follow existing patterns in the codebase. Don't introduce new patterns.
 - Work directly on `main` (or the branch specified in the spec)
 - One commit per batch (unless the spec says otherwise)
 - Use the commit message from the spec
+- **Never use `Closes #N`, `Fixes #N`, or `Resolves #N` in commit messages.** These auto-close the issue on GitHub, bypassing the QA gate. Reference issues with just `#N` instead (e.g., "Add widget layout for #42"). The PM agent owns issue closure after QA passes. **Hook-enforced.**
 - Never force push
 - Never amend published commits
 - Stage specific files by name — never `git add -A` or `git add .`
@@ -121,3 +169,7 @@ Wait for the pipeline to pass. If it fails, investigate and fix.
 - **Do not skip verification.** Run every verification command.
 - **Do not push if verification fails.** Fix the issue or report back.
 - **Do not edit files outside your declared file set.** If you discover you need to, stop and notify the PM agent.
+
+---
+
+You must produce the Completion Report with embedded Session Handoff before ending your session.

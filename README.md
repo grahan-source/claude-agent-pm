@@ -208,6 +208,24 @@ Key differences from most frameworks:
 
 ---
 
+## Semi-Formal Code Reasoning
+
+All three agent roles include structured reasoning protocols based on [research on agentic code reasoning](https://arxiv.org/abs/2603.01896). The core insight: forcing agents to trace execution paths with concrete inputs catches 10-15% more bugs than unstructured "looks right" review.
+
+### Coding Agent: Self-Verification Certificate
+
+Before committing, the coding agent fills out a reasoning certificate for each task — stating premises from the spec, tracing execution with concrete inputs (happy path, edge case, error path), and providing a formal conclusion. This prevents "pattern-matching" pushes where the code looks right but breaks under different inputs.
+
+### QA Agent: Code Reasoning (Diff Analysis)
+
+The QA agent reads the actual diff and answers structured questions: What data flows through this code? What are all the branches? Does the change match the spec's intent semantically? This layer catches bugs that visual testing and curl checks miss — issues that only surface with null values, empty arrays, or unexpected types.
+
+### PM Agent: Fault Localization Protocol
+
+When investigating bugs, the PM agent follows a phased protocol: symptom characterization → test semantics → code path trace → divergence analysis → formal prediction. This prevents fixating on the crash site and missing the actual root cause, especially for indirection bugs and multi-file issues.
+
+---
+
 ## Lessons Learned (from production use)
 
 1. **Exact code snippets in specs > descriptions of what to change.** Ambiguity causes wrong implementations.
@@ -218,6 +236,7 @@ Key differences from most frameworks:
 6. **Living architecture docs eliminate re-investigation.** Every session starts fresh — good docs are the fastest onramp.
 7. **Agents suffer "time blindness."** They'll happily spend hours running tests instead of making progress. Set expectations for speed in your specs.
 8. **Observability beats speed.** A slow system you can see is better than a fast system you can't explain. Every failure at scale traces back to insufficient observability.
+9. **Structured reasoning > unstructured review.** Semi-formal verification certificates catch semantic bugs that "does it look right?" misses. The 2.8x step overhead is irrelevant — agent time is cheap, bugs that reach production aren't.
 
 ---
 

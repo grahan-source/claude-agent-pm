@@ -55,7 +55,46 @@ Targeted regression based on what changed:
 - Templates modified → load every affected template, check for errors
 - API endpoints modified → curl the endpoint, verify response shape
 
-### 4. Security Review
+### 4. Code Reasoning (Diff Analysis)
+
+Visual testing catches "does it work now?" — this section catches "will it break under different inputs?" Read the actual diff and reason about the changed code semantically, not just its output.
+
+**Why this exists:** Curl checks and screenshots verify current behavior with current data. They miss bugs that only surface with different inputs — null values, empty arrays, missing keys, unexpected types. Structured diff analysis catches these before users hit them. (Based on [research on semi-formal code reasoning](https://arxiv.org/abs/2603.01896).)
+
+**For each changed function or template, answer:**
+
+1. **What data flows through this code?**
+   - Where does the input come from? (DB query, API response, user input, config, cache)
+   - What are the possible states? (null, empty string, empty array, missing key, unexpected type)
+   - Is the data sanitized/escaped at output?
+
+2. **Path enumeration — what are ALL the branches?**
+   - List every conditional branch in the changed code
+   - For each branch: what input triggers it? Does the triggered behavior match the spec?
+   - Are there inputs that reach NO branch (fall-through)?
+
+3. **Equivalence check — does the change match the spec's intent?**
+   - Read the spec requirement. Read the code. Are they semantically equivalent?
+   - Watch for subtle differences: the spec says "show the user's name" but the code outputs `user.username` — is that the same thing?
+   - Watch for function shadowing: does a local/imported function have the same name as a builtin but different behavior?
+
+4. **What the coding agent's verification certificate says**
+   - The coding agent's completion report should include a self-verification certificate with traced execution paths
+   - Cross-check their traces against your own reading of the code
+   - If the certificate is missing or incomplete, flag it — the coding agent skipped a required step
+
+**Report format for this section:**
+```markdown
+## Code Reasoning
+| File | Change | Inputs Traced | Issues |
+|------|--------|---------------|--------|
+| src/auth.py | Added null check for user role | null role, valid role, missing key | None — all paths correct |
+| templates/dash.html | New conditional for admin users | admin user, editor, no role | ISSUE: empty role falls through without handling |
+```
+
+If the coding agent's certificate already traced the paths and you confirm them, a one-line "Confirmed — traces match" is sufficient. Don't redo work that's already done correctly.
+
+### 5. Security Review
 
 | Check | What to Look For |
 |-------|-----------------|
@@ -65,7 +104,7 @@ Targeted regression based on what changed:
 | API permissions | New endpoints without proper authorization |
 | Hardcoded secrets | API keys, passwords in committed code |
 
-### 5. Performance Checks
+### 6. Performance Checks
 
 - LCP (Largest Contentful Paint) — should be < 2.5s
 - CLS (Cumulative Layout Shift) — should be < 0.1
@@ -97,6 +136,12 @@ Targeted regression based on what changed:
 ## Regression
 [Key checks and results]
 
+## Code Reasoning
+| File | Change | Inputs Traced | Issues |
+|------|--------|---------------|--------|
+[For each changed file with logic — trace data flow, enumerate branches, check spec equivalence]
+[If coding agent certificate confirmed: "Confirmed — traces match"]
+
 ## Security
 [Any findings, or "No issues found"]
 
@@ -111,6 +156,11 @@ Targeted regression based on what changed:
 
 ## Verdict
 [PASS / PASS WITH NOTES / FAIL — with reasoning]
+
+## Session Handoff
+**Status:** COMPLETE | PARTIAL | BLOCKED | FAILED
+**Next Steps:** [what the PM agent should do — deploy, fix, re-test]
+**Context:** [anything discovered during QA that the system should know]
 ```
 
 ### Severity Definitions

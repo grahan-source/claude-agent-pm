@@ -155,10 +155,10 @@ The user's time is the scarcest resource — protect it.
 ## 12. Agent Roles
 
 **PM + QA Agent** (this agent in the PM repo):
-- Scopes work, writes specs, triages bugs, manages TODOS.md
-- After a coding agent executes a batch: verifies the code matches the spec, tests functionality, QAs the result, and pushes live
+- Scopes work, writes specs, triages bugs, manages task tracker
+- Owns the full lifecycle — see the project's CLAUDE.md for phase definitions
+- After a coding agent completes: verifies, QAs, deploys
 - Does NOT write application code — coding agents handle that in their respective repos
-- Owns the full lifecycle: spec → hand off → verify → test → QA → deploy
 
 **Coding Agents** (per-repo):
 - Execute specs as written by the PM agent
@@ -215,15 +215,8 @@ Every session starts fresh. These files are the fastest path to full context.
 
 ### Workflow
 
-```
-User reports issue/request
-  → PM agent investigates (reads code, researches)
-  → PM agent writes spec (specs/batch-N-*.md)
-  → PM agent dispatches to coding agent
-  → Coding agent executes, commits, pushes, writes QA handoff
-  → CI/CD deploys (build → deploy → cache purge → smoke tests)
-  → PM agent verifies, QAs, updates TODOS.md
-```
+See the project's CLAUDE.md for the lifecycle phases table.
+The general flow: Intake → Spec → (Design) → Implement → QA → Verify → Close.
 
 ### Key Files
 
@@ -236,3 +229,112 @@ User reports issue/request
 | `CODING-AGENT.md` | Coding agent role, code style, git conventions, deploy pipeline |
 | `QA-AGENT.md` | QA procedures, visual testing, regression checklists |
 | `INTAKE-AGENT.md` | Bug/request triage, TODOS.md formatting rules |
+
+---
+
+## 15. Dispatch Protocol
+
+When the PM agent hands off work to any other agent, the dispatch is brief.
+The GitHub Issue (or task tracker) carries the context — don't duplicate it in the prompt.
+
+### Dispatch Format
+
+```
+[Agent Role]: [Short Title]
+Your instructions: ~/claude-agent-pm/[AGENT-DEF].md + ~/fldn/[AGENT-DEF].md
+Issue: #N — read the latest spec comment for your task
+When done: Post your completion report as a comment on Issue #N,
+including the Session Handoff block (see CLAUDE.md §16). Then report back here.
+```
+
+The agent reads its role definition, reads the issue, does the work,
+posts results on the issue. Brief prompt, GitHub has the detail.
+
+---
+
+## 16. Session Handoff Protocol
+
+Every agent session must end with a Session Handoff block. No exceptions.
+Post it on the GitHub Issue you're working on. If there's no issue, post as final chat message.
+
+### Format
+
+```
+**Session Handoff**
+**Status:** COMPLETE | PARTIAL | BLOCKED | FAILED
+[1 sentence: what was accomplished]
+**Work Done:** [commit hash, artifact path, or "investigation only"]
+**Next Steps:** [what the next agent should do, or "None — verified and live"]
+**Context:** [optional — only if you learned something the next session would waste time rediscovering]
+```
+
+### Rules
+- Status is one word from the fixed vocabulary. No ambiguity.
+- Work Done requires concrete references. Not "made progress."
+- Next Steps answers "what does the next agent do?" not "what did I do?"
+- Coding Agents: embed this in your Completion Report (not a separate comment).
+- QA Agents: embed this in your QA Report (not a separate comment).
+- Keep it short. The issue history has the detail.
+
+---
+
+## 17. Subagent Rules
+
+### Who Can Dispatch
+Only the PM agent dispatches work to other agents (both subagents and new agent windows).
+
+Other agents do NOT spawn their own subagents. If they discover work another agent
+should handle, they report it in their completion report / session handoff.
+
+### Why
+- Context degrades at each nesting level (one-shot prompt from an agent that got a one-shot prompt)
+- PM agent tracks file checkouts — nested dispatch bypasses that tracking
+- Sub-subagent output is trapped inside the parent session — PM can't inspect or learn from it
+
+### One Exception
+A coding agent MAY use Task tool for mechanical, single-file operations that meet ALL criteria:
+1. Entirely within the current spec's declared file set
+2. No design decisions (e.g., "rename all X to Y in this file")
+3. Output is immediately verifiable by the parent agent
+4. Documented in the completion report
+
+### Depth Limit
+Maximum depth: 1. Subagents may NOT spawn their own subagents.
+
+---
+
+## 18. Behavioral Enforcement via Hooks
+
+Documentation and templates define what agents *should* do. Hooks enforce what they *must* do.
+
+Claude Code hooks are shell scripts that run automatically on specific events (tool use, session end, etc.). They're configured in `~/.claude/settings.json` and fire without agent awareness or cooperation.
+
+### Enforcement Hierarchy
+
+| Level | Mechanism | Strength |
+|-------|-----------|----------|
+| **Hooks** | Shell scripts on events | True enforcement — can block actions |
+| **Templates** | Completion Report, QA Report | Structural compliance — agent fills in the blanks |
+| **Positioned instructions** | Bottom of CLAUDE.md, bottom of agent defs | Recency in context — stays in working memory |
+| **Documentation** | Prose in agent definitions | Weakest — agent may forget |
+
+### Active Hooks
+
+Hooks are configured globally in `~/.claude/settings.json`. Scripts live in `~/.claude/hooks/`.
+
+| Hook | Event | What It Does |
+|------|-------|-------------|
+| `auto-push-after-commit.sh` | PostToolUse (Bash) | After `git commit`, auto-pushes to origin. Reminds coding agents about next lifecycle phase. Only for shswanson/ repos. |
+| `check-unpushed-commits.sh` | Stop | When Claude finishes a response, blocks if unpushed commits exist. Safety net. |
+| `issue-close-guard.sh` | PreToolUse (Bash) | Blocks `gh issue close` unless issue has `live` label. Enforces full lifecycle. |
+| `prevent-issue-autoclose.sh` | PreToolUse (Bash) | Blocks `git commit` if message contains `Closes #N` / `Fixes #N`. PM agent owns issue closure. |
+| `label-transition-guard.sh` | PreToolUse (Bash) | Enforces label state machine: `ready` → `in-progress` → `deployed` → `qa` → `live`. Each requires its predecessor. |
+
+### Adding New Hooks
+
+When a behavioral gap is identified (agents consistently forgetting something):
+1. First try documentation/template fixes
+2. If the gap persists, write a hook script in `~/.claude/hooks/`
+3. Configure it in `~/.claude/settings.json`
+4. Document it in this table
+5. Test by simulating the event input via stdin

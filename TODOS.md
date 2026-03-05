@@ -21,11 +21,11 @@
 
 > Get the GitHub repo into a known good state so the agent always works from ground truth.
 
-- [ ] **T0.1 — Commit RLS migration**
-  Write and commit `supabase/migrations/20260304000000_rls_policies.sql` capturing the four granular RLS policies currently applied server-side but missing from the repo. Drop the old `authenticated_full_access` catch-all if present. See `docs/ARCHITECTURE.md` for exact policy definitions. Push to `main`.
+- [x] ~~**T0.1 — Commit RLS migration**~~
+  ~~Write and commit `supabase/migrations/20260304000000_rls_policies.sql` capturing the four granular RLS policies currently applied server-side but missing from the repo. Drop the old `authenticated_full_access` catch-all if present. See `docs/ARCHITECTURE.md` for exact policy definitions. Push to `main`.~~
 
-- [ ] **T0.2 — Upgrade edge function model to Sonnet**
-  In `supabase/functions/tag-image/index.ts`, replace `claude-haiku-4-5-20251001` with `claude-sonnet-4-5-20250929`. Commit and push. Verify the function still deploys cleanly.
+- [x] ~~**T0.2 — Upgrade edge function model to Sonnet**~~
+  ~~In `supabase/functions/tag-image/index.ts`, replace `claude-haiku-4-5-20251001` with `claude-sonnet-4-5-20250929`. Commit and push. Verify the function still deploys cleanly.~~
 
 ---
 
@@ -44,18 +44,21 @@
 
 ---
 
-## Bundle 2 — Bulk Upload Queue (P1)
+## Bundle 2 — Upload Pipeline (P1)
 
-> Single-file upload works. README flags bulk upload as the next major feature.
+> Bulk upload is the next major workflow feature. Absorbing upload quality improvements here since they touch the same files and are more impactful at bulk scale.
 
 - [ ] **T2.1 — Spec: Bulk upload queue**
   PM Agent writes spec covering: multi-file selection in `UploadZone.jsx`, queue state management (pending / processing / done / error per file), sequential calls to `tag-image` edge function, progress display, error handling per file without aborting the queue.
 
-- [ ] **T2.2 — Implement bulk upload**
-  Coding Agent implements per spec. Likely requires refactoring `UploadPage.jsx` state management significantly.
+- [ ] **T2.2 — Spec: Upload pipeline quality**
+  PM Agent writes spec covering: (a) persist in-progress tag review state to `sessionStorage` in `TagReviewForm.jsx` and restore on mount — prevents losing a 30-60s Claude Vision result on accidental refresh; (b) resize images client-side to max 2048px before upload to Supabase Storage; (c) compress images client-side (~80% quality) using `canvas` or `browser-image-compression` before upload — reduces storage cost and library load time.
 
-- [ ] **T2.3 — QA bulk upload**
-  Test: upload 5 images, verify all tagged sequentially. Test: one bad file in queue, verify others complete. Test: progress UI updates correctly.
+- [ ] **T2.3 — Implement bulk upload + pipeline quality**
+  Coding Agent implements per specs. Files: `UploadZone.jsx`, `UploadPage.jsx`, `TagReviewForm.jsx`, `supabase/functions/tag-image/index.ts` (resize before base64 encode for Claude Vision call).
+
+- [ ] **T2.4 — QA upload pipeline**
+  Test: upload 5 images, verify all tagged sequentially. Test: one bad file in queue, verify others complete. Test: progress UI updates correctly. Test: refresh mid-review, verify tag state restored. Test: upload a large image, verify it is resized/compressed before storage.
 
 ---
 
@@ -67,22 +70,49 @@
 - [ ] **T3.2 — Featured flag toggle**
   `is_featured` exists in schema but no UI to toggle it. Add toggle to `SignCard.jsx` (visible in library, behind `is_approved` gate or always visible — PM to decide in spec).
 
+- [ ] **T3.3 — Search/filter debouncing**
+  Every keystroke in the library search input and filter selects triggers a Supabase query. Add a ~300ms debounce in `LibraryPage.jsx` to reduce unnecessary API calls.
+
+- [ ] **T3.4 — Lazy-load library images**
+  `SignCard.jsx` uses plain `<img>` tags. Add `loading="lazy"` to prevent the browser from fetching all images at once on library load.
+
 ---
 
-## Bundle 4 — Vector Search / Semantic Similarity (P3)
+## Bundle 5 — Polish (P2)
+
+- [ ] **T5.1 — Error message granularity**
+  Map Supabase error codes and edge function failure modes to specific, actionable messages (e.g. "Image too large for analysis", "Session expired — please log in again", "Storage quota exceeded"). Currently most failure paths show generic messages.
+
+- [ ] **T5.2 — Mobile responsiveness**
+  Library grid is fixed 3-column with no breakpoints. Tag review form's two-column layout breaks on small screens. Add Tailwind responsive prefixes (`sm:`, `md:`) across `LibraryPage.jsx`, `TagReviewForm.jsx`, and `SignCard.jsx`.
+
+---
+
+## Bundle 6 — Vector Search / Semantic Similarity (P3)
 
 > Higher effort. Needs pgvector enabled in Supabase + embedding generation in the edge function.
 
-- [ ] **T4.1 — Spec: Embedding pipeline**
+- [ ] **T6.1 — Spec: Embedding pipeline**
   PM Agent scopes enabling pgvector, adding embedding generation to `tag-image` (use `ai_description` text as input), storing in `embedding` column, building a similarity search endpoint.
 
-- [ ] **T4.2 — Implement embedding pipeline**
+- [ ] **T6.2 — Implement embedding pipeline**
 
-- [ ] **T4.3 — Style matching UI**
+- [ ] **T6.3 — Style matching UI**
   Allow users to input a text description and find similar signs by vector similarity. This is the primary end-goal use case.
+
+---
+
+## Backlog (P3 — no bundle assigned)
+
+- [ ] **Global state layer** — Replace prop-drilling with React Context + `useReducer` for auth state and library filters. Not urgent until more features are added.
+- [ ] **Analytics dashboard** — Basic aggregate queries (tags-per-category, upload frequency, average quality rating, top aesthetics). New page in the app.
+- [ ] **Test suite** — Integration tests for critical paths (upload flow, tag save, library filtering) using Vitest + React Testing Library.
 
 ---
 
 ## Completed
 
-_(none yet)_
+### Bundle 0 — Repo Sync
+
+- [x] ~~T0.1 — RLS migration committed (`20260304000000_rls_policies.sql`)~~
+- [x] ~~T0.2 — Edge function upgraded to `claude-sonnet-4-5-20250929`~~

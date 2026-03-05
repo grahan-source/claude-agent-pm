@@ -300,3 +300,38 @@ A coding agent MAY use Task tool for mechanical, single-file operations that mee
 
 ### Depth Limit
 Maximum depth: 1. Subagents may NOT spawn their own subagents.
+
+---
+
+## 18. Behavioral Enforcement via Hooks
+
+Documentation and templates define what agents *should* do. Hooks enforce what they *must* do.
+
+Claude Code hooks are shell scripts that run automatically on specific events (tool use, session end, etc.). They're configured in `~/.claude/settings.json` and fire without agent awareness or cooperation.
+
+### Enforcement Hierarchy
+
+| Level | Mechanism | Strength |
+|-------|-----------|----------|
+| **Hooks** | Shell scripts on events | True enforcement — can block actions |
+| **Templates** | Completion Report, QA Report | Structural compliance — agent fills in the blanks |
+| **Positioned instructions** | Bottom of CLAUDE.md, bottom of agent defs | Recency in context — stays in working memory |
+| **Documentation** | Prose in agent definitions | Weakest — agent may forget |
+
+### Active Hooks
+
+Hooks are configured globally in `~/.claude/settings.json`. Scripts live in `~/.claude/hooks/`.
+
+| Hook | Event | What It Does |
+|------|-------|-------------|
+| `auto-push-after-commit.sh` | PostToolUse (Bash) | After `git commit`, auto-pushes to origin. Only for shswanson/ repos. |
+| `check-unpushed-commits.sh` | Stop | When Claude finishes a response, blocks if unpushed commits exist. Safety net. |
+
+### Adding New Hooks
+
+When a behavioral gap is identified (agents consistently forgetting something):
+1. First try documentation/template fixes
+2. If the gap persists, write a hook script in `~/.claude/hooks/`
+3. Configure it in `~/.claude/settings.json`
+4. Document it in this table
+5. Test by simulating the event input via stdin

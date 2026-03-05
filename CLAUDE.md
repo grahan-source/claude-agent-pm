@@ -328,6 +328,7 @@ Hooks are configured globally in `~/.claude/settings.json`. Scripts live in `~/.
 | `check-unpushed-commits.sh` | Stop | When Claude finishes a response, blocks if unpushed commits exist. Safety net. |
 | `issue-close-guard.sh` | PreToolUse (Bash) | Blocks `gh issue close` unless issue has `live` label. Enforces full lifecycle. |
 | `prevent-issue-autoclose.sh` | PreToolUse (Bash) | Blocks `git commit` if message contains `Closes #N` / `Fixes #N`. PM agent owns issue closure. |
+| `label-transition-guard.sh` | PreToolUse (Bash) | Enforces label state machine: `ready` → `in-progress` → `deployed` → `qa` → `live`. Each requires its predecessor. |
 
 ### Adding New Hooks
 

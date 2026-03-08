@@ -135,7 +135,7 @@ Follow existing patterns in the codebase. Don't introduce new patterns.
 
 ### Git
 
-- Work directly on `main` (or the branch specified in the spec)
+- Work directly on `master` (or the branch specified in the spec)
 - One commit per batch (unless the spec says otherwise)
 - Use the commit message from the spec
 - **Never use `Closes #N`, `Fixes #N`, or `Resolves #N` in commit messages.** These auto-close the issue on GitHub, bypassing the QA gate. Reference issues with just `#N` instead (e.g., "Add widget layout for #42"). The PM agent owns issue closure after QA passes. **Hook-enforced.**

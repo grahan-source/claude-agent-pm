@@ -17,9 +17,9 @@
 
 ---
 
-## Bundle 0 — Repo Sync (prerequisite for everything)
+## ~~Bundle 0 — Repo Sync (prerequisite for everything)~~
 
-> Get the GitHub repo into a known good state so the agent always works from ground truth.
+> ~~Get the GitHub repo into a known good state so the agent always works from ground truth.~~
 
 - [x] ~~**T0.1 — Commit RLS migration**~~
   ~~Write and commit `supabase/migrations/20260304000000_rls_policies.sql` capturing the four granular RLS policies currently applied server-side but missing from the repo. Drop the old `authenticated_full_access` catch-all if present. See `docs/ARCHITECTURE.md` for exact policy definitions. Push to `main`.~~
@@ -33,14 +33,28 @@
 
 > `SignCard.jsx` has an `onUpdate` callback wired up but no edit UI. Editing tags on approved signs is needed for data quality.
 
-- [ ] **T1.1 — Spec: Edit tags on library entries**
-  PM Agent writes spec covering: inline edit mode on SignCard, which fields are editable (all tag fields + owner_notes + quality_rating + is_featured + is_approved), save/cancel flow, optimistic UI update, Supabase `update()` call with `updated_at` timestamp.
+- [x] ~~**T1.1 — Spec: Edit tags on library entries**~~
+  ~~PM Agent writes spec covering: inline edit mode on SignCard, which fields are editable (all tag fields + owner_notes + quality_rating + is_featured + is_approved), save/cancel flow, optimistic UI update, Supabase `update()` call with `updated_at` timestamp.~~
+  Spec: `specs/bundle-1-edit-library-entries.md`
 
-- [ ] **T1.2 — Implement edit UI**
-  Coding Agent implements per spec. Fields: all tag columns from schema. Requires updating `SignCard.jsx`, `LibraryPage.jsx`, and potentially extracting an `EditModal.jsx` or `EditDrawer.jsx` component.
+- [x] ~~**T1.2 — Implement edit UI**~~
+  ~~Coding Agent implements per spec. Fields: all tag columns from schema. Requires updating `SignCard.jsx`, `LibraryPage.jsx`, and potentially extracting an `EditModal.jsx` or `EditDrawer.jsx` component.~~
+  Commit: `signforge-admin@f8350dd`
 
-- [ ] **T1.3 — QA edit flow**
-  Test: edit a tag, save, verify update reflected in library. Test: cancel edit, verify no change. Test: edit `is_approved` and `is_featured` toggles.
+- [x] ~~**T1.3 — QA edit flow**~~
+  ~~Test: edit a tag, save, verify update reflected in library. Test: cancel edit, verify no change. Test: edit `is_approved` and `is_featured` toggles.~~
+  All 6 checks passed. `quality_rating` stores as integer correctly. Minor: Save button requires precise click target — sticky footer clips near modal edge. Non-blocking.
+
+---
+
+## Bundle 1.5 — Edit Modal Polish (P2)
+
+- [ ] **T1.4 — Fix Save button click target in EditModal**
+  The sticky footer in `EditModal.jsx` clips near the bottom edge of the modal scroll container, making the Save button require a very precise click. Add `min-h-[52px]` or padding to the footer, or increase the button's hit area.
+
+- [x] ~~**T1.5 — Verify `.env` is gitignored in signforge-admin**~~
+  ~~`.env` was created locally during QA setup. Confirm it's listed in `.gitignore` so it can't be accidentally committed.~~
+  Confirmed — `.env` is in `.gitignore` (line 14).
 
 ---
 
@@ -112,7 +126,11 @@
 
 ## Completed
 
-### Bundle 0 — Repo Sync
+### Bundle 1 — Edit Existing Library Entries
+- [x] T1.1 — Spec written (`specs/bundle-1-edit-library-entries.md`)
+- [x] T1.2 — EditModal + SignCard implemented, commit `signforge-admin@f8350dd`
+- [x] T1.3 — QA passed (all 6 checks). Minor: Save button click target small at modal edge — non-blocking.
 
-- [x] ~~T0.1 — RLS migration committed (`20260304000000_rls_policies.sql`)~~
-- [x] ~~T0.2 — Edge function upgraded to `claude-sonnet-4-5-20250929`~~
+### Bundle 0 — Repo Sync
+- [x] T0.1 — RLS migration committed (`supabase/migrations/20260304000000_rls_policies.sql`)
+- [x] T0.2 — Edge function upgraded to `claude-sonnet-4-5-20250929`

@@ -125,13 +125,6 @@ Do not apply schema changes via the Supabase dashboard without committing the co
 
 ---
 
-## Repo State (as of 2026-03-04)
-
-- 2 commits: `Initial commit` → `Fix edge function`
-- RLS policies above were applied server-side but **not yet committed** as a migration file — this is Task #1 in `TODOS.md`
-- No other local-only changes
-
----
 
 ## Future Work (not yet started)
 
